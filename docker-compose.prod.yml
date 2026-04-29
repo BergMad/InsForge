@@ -33,8 +33,6 @@ services:
         VITE_PUBLIC_POSTHOG_KEY: ${VITE_PUBLIC_POSTHOG_KEY:-}
 
     depends_on:
-      postgres:
-        condition: service_healthy
     ports:
       - "${APP_PORT:-7130}:7130"
       - "${AUTH_PORT:-7131}:7131"
