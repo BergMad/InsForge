@@ -1,25 +1,17 @@
 services:
-
   postgrest:
     image: postgrest/postgrest:v12.2.12
-
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
     environment:
-      #POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      #POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      #POSTGRES_DB: ${POSTGRES_DB:-insforge}
-      PGRST_DB_URI: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-insforge}
-      PGRST_OPENAPI_SERVER_PROXY_URI: http://localhost:3000
-      PGRST_DB_SCHEMA: public
-      PGRST_DB_ANON_ROLE: anon
-      PGRST_JWT_SECRET: ${JWT_SECRET:-dev-secret-please-change-in-production}
+      PGRST_DB_URI: ${PGRST_DB_URI}
+      PGRST_OPENAPI_SERVER_PROXY_URI: ${PGRST_OPENAPI_SERVER_PROXY_URI:-http://localhost:3000}
+      PGRST_DB_SCHEMA: ${PGRST_DB_SCHEMA:-public}
+      PGRST_DB_ANON_ROLE: ${PGRST_DB_ANON_ROLE:-anon}
+      PGRST_JWT_SECRET: ${JWT_SECRET}
     ports:
       - "${POSTGREST_PORT:-5430}:3000"
-    depends_on:
-      postgres:
-        condition: service_healthy
     networks:
       - insforge-network
 
@@ -31,34 +23,32 @@ services:
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:7130}
         VITE_PUBLIC_POSTHOG_KEY: ${VITE_PUBLIC_POSTHOG_KEY:-}
-
-    depends_on:
     ports:
       - "${APP_PORT:-7130}:7130"
       - "${AUTH_PORT:-7131}:7131"
     environment:
       - PORT=7130
       - PROJECT_ROOT=/app
-      - API_BASE_URL=${API_BASE_URL:-}
-      - JWT_SECRET=${JWT_SECRET:-dev-secret-please-change-in-production}
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-change-this-password}
+      - API_BASE_URL=${API_BASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
-      # PostgreSQL connection
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=${POSTGRES_DB:-insforge}
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-insforge}
+
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - DATABASE_URL=${DATABASE_URL}
+
       - POSTGREST_BASE_URL=http://postgrest:3000
-      # Deno Runtime URL for serverless functions
       - DENO_RUNTIME_URL=http://deno:7133
       - DENO_SUBHOSTING_TOKEN=${DENO_SUBHOSTING_TOKEN:-}
       - DENO_SUBHOSTING_ORG_ID=${DENO_SUBHOSTING_ORG_ID:-}
-      # Storage Configuration
+
       - MAX_FILE_SIZE=${MAX_FILE_SIZE:-}
       - MAX_JSON_BODY_SIZE=${MAX_JSON_BODY_SIZE:-}
       - MAX_URLENCODED_BODY_SIZE=${MAX_URLENCODED_BODY_SIZE:-}
@@ -67,18 +57,18 @@ services:
       - AWS_CLOUDFRONT_URL=${AWS_CLOUDFRONT_URL:-}
       - AWS_CLOUDFRONT_KEY_PAIR_ID=${AWS_CLOUDFRONT_KEY_PAIR_ID:-}
       - AWS_CLOUDFRONT_PRIVATE_KEY=${AWS_CLOUDFRONT_PRIVATE_KEY:-}
-      # Deployment Configuration
+
       - VERCEL_TOKEN=${VERCEL_TOKEN:-}
       - VERCEL_TEAM_ID=${VERCEL_TEAM_ID:-}
       - VERCEL_PROJECT_ID=${VERCEL_PROJECT_ID:-}
-      # Multi-tenant Cloud Configuration
+
       - DEPLOYMENT_ID=${DEPLOYMENT_ID:-}
       - PROJECT_ID=${PROJECT_ID:-}
       - APP_KEY=${APP_KEY:-}
       - ACCESS_API_KEY=${ACCESS_API_KEY:-}
-      # LLM Model API keys
+
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
-      # OAuth Configuration
+
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
       - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
@@ -93,9 +83,8 @@ services:
       - X_CLIENT_SECRET=${X_CLIENT_SECRET:-}
       - APPLE_CLIENT_ID=${APPLE_CLIENT_ID:-}
       - APPLE_CLIENT_SECRET=${APPLE_CLIENT_SECRET:-}
-      # Logs directory
+
       - LOGS_DIR=/insforge-logs
-      # Storage directory (for local file storage when S3 is not configured)
       - STORAGE_DIR=/insforge-storage
     volumes:
       - storage-data:/insforge-storage
@@ -106,15 +95,12 @@ services:
     security_opt:
       - no-new-privileges:true
 
-  # Deno serverless runtime for edge functions
   deno:
     image: denoland/deno:alpine-2.0.6
-
     working_dir: /app
     security_opt:
       - no-new-privileges:true
     depends_on:
-      - postgres
       - postgrest
     ports:
       - "${DENO_PORT:-7133}:7133"
@@ -122,18 +108,16 @@ services:
       - PORT=7133
       - DENO_ENV=${DENO_ENV:-production}
       - DENO_DIR=/deno-dir
-      # PostgreSQL connection
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=${POSTGRES_DB:-insforge}
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - DATABASE_URL=${DATABASE_URL}
       - POSTGREST_BASE_URL=http://postgrest:3000
-      # Worker timeout (60 seconds default)
       - WORKER_TIMEOUT_MS=${WORKER_TIMEOUT_MS:-60000}
-      # Encryption keys for decrypting function secrets
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
-      - JWT_SECRET=${JWT_SECRET:-dev-secret-please-change-in-production}
+      - JWT_SECRET=${JWT_SECRET}
     volumes:
       - ./functions:/app/functions
       - deno_cache:/deno-dir
@@ -148,16 +132,12 @@ services:
     networks:
       - insforge-network
 
-  # Vector.dev for log collection and shipping
   vector:
-
     image: timberio/vector:0.28.1-alpine
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
     depends_on:
-      postgres:
-        condition: service_healthy
       postgrest:
         condition: service_started
       insforge:
@@ -184,8 +164,6 @@ services:
       - insforge-network
 
 volumes:
-  postgres-data:
-    driver: local
   deno_cache:
     driver: local
   storage-data:
